@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Box</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            background-color: lightblue;
+        }
+
+        #score, #speed {
+            position: absolute;
+            top: 10px;
+            font-size: 24px;
+            color: #333;
+            display: none; /* Initially hidden until the game starts */
+        }
+
+        #score {
+            left: 10px;
+        }
+
+        #speed {
+            right: 10px;
+        }
+
+        #titleScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 10;
+        }
+
+        #titleScreen h1 {
+            font-size: 48px;
+            margin: 0;
+        }
+
+        #titleScreen button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 20px;
+            cursor: pointer;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px;
+        }
+
+        #titleScreen button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="titleScreen">
+        <h1>welcome to flapy box.</h1>
+        <button id="startButton">start ye game</button>
+    </div>
+    <div id="score">Score: 0</div>
+    <div id="speed">Speed: 1.00</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const titleScreen = document.getElementById("titleScreen");
+        const startButton = document.getElementById("startButton");
+        const scoreDisplay = document.getElementById("score");
+        const speedDisplay = document.getElementById("speed");
+
+        // Resize canvas to fullscreen
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+
+        // Game Variables
+        const gravity = 0.5;
+        const jumpStrength = -8;
+        let speed = 1.00; // Initial speed
+        let speedActual = 15.00;
+        const box = {
+            x: 50,
+            y: canvas.height / 2,
+            width: 30,
+            height: 30,
+            dy: 0
+        };
+        const pipes = [];
+        const pipeWidth = 50;
+        const gapHeight = 150; // Adjusted for fullscreen
+        let pipeSpeed = 2;
+        let score = 0;
+        let gameOver = false;
+        let gameStarted = false;
+
+        // Increase speed every 5 seconds
+        setInterval(() => {
+            if (!gameOver && gameStarted) {
+                speed *= 1.01;
+                pipeSpeed = 2 * speedActual; // Pipes move faster as speed increases
+                speedDisplay.innerText = `Speed: ${speed.toFixed(2)}`;
+            }
+        }, 500);
+
+        setInterval(() => {
+            if (!gameOver && gameStarted) {
+                speedActual = speedActual * 0.95 + speed * 0.05;       
+            }
+        }, 20);
+
+        // Event Listener for Jump
+        document.addEventListener("keydown", () => {
+            if (gameStarted) {
+                if (!gameOver) {
+                    box.dy = jumpStrength;
+                } else {
+                    resetGame();
+                }
+            }
+        });
+
+        // Create Pipes
+        function createPipe() {
+            const pipeY = Math.random() * (canvas.height - gapHeight - 100) + 50;
+            pipes.push({ x: canvas.width, y: pipeY });
+        }
+
+        // Reset Game
+        function resetGame() {
+            pipes.length = 0;
+            box.y = canvas.height / 2;
+            box.dy = 0;
+            score = 0;
+            speed = 1.00; // Reset speed
+            pipeSpeed = 2; // Reset pipe speed
+            gameOver = false;
+            speedDisplay.innerText = `Speed: ${speed.toFixed(2)}`;
+        }
+
+        // Check Collision
+        function checkCollision(pipe) {
+            if (
+                box.x < pipe.x + pipeWidth &&
+                box.x + box.width > pipe.x &&
+                (box.y < pipe.y || box.y + box.height > pipe.y + gapHeight)
+            ) {
+                gameOver = true;
+            }
+
+            if (box.y + box.height >= canvas.height || box.y <= 0) {
+                gameOver = true;
+            }
+        }
+
+        // Update Game
+        function update() {
+            if (!gameOver && gameStarted) {
+                box.dy += gravity;
+                box.y += box.dy;
+
+                // Move and manage pipes
+                for (let i = pipes.length - 1; i >= 0; i--) {
+                    pipes[i].x -= pipeSpeed;
+
+                    if (pipes[i].x + pipeWidth < 0) {
+                        pipes.splice(i, 1);
+                        score++;
+                    }
+
+                    checkCollision(pipes[i]);
+                }
+
+                if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 300) {
+                    createPipe();
+                }
+
+                scoreDisplay.innerText = `Score: ${score}`;
+            }
+        }
+
+        // Draw Game
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Box
+            ctx.fillStyle = "red";
+            ctx.fillRect(box.x, box.y, box.width, box.height);
+
+            // Draw Pipes
+            ctx.fillStyle = "green";
+            pipes.forEach(pipe => {
+                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.y);
+                ctx.fillRect(pipe.x, pipe.y + gapHeight, pipeWidth, canvas.height);
+            });
+
+            if (gameOver) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "white";
+                ctx.font = "24px Arial";
+                ctx.fillText("Game Over! You scored " + score + " points. Press any key to restart", canvas.width / 2 - 150, canvas.height / 2);
+                speed = 1.00;
+                speedActual = 15.00;
+            }
+        }
+
+        // Game Loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start Game
+        startButton.addEventListener("click", () => {
+            titleScreen.style.display = "none";
+            scoreDisplay.style.display = "block";
+            speedDisplay.style.display = "block";
+            gameStarted = true;
+        });
+
+        gameLoop();
+    </script>
+</body>
+</html>
