@@ -124,20 +124,23 @@
 
         setInterval(() => {
             if (!gameOver && gameStarted) {
-                speedActual = speedActual * 0.95 + speed * 0.05;       
+                speedActual = speedActual * 0.95 + speed * 0.05;
             }
         }, 20);
 
-        // Event Listener for Jump
-        document.addEventListener("keydown", () => {
+        // Handle Input for Jump and Respawn
+        function handleInput() {
             if (gameStarted) {
                 if (!gameOver) {
-                    box.dy = jumpStrength;
+                    box.dy = jumpStrength; // Trigger jump
                 } else {
-                    resetGame();
+                    resetGame(); // Reset game on input when game over
                 }
             }
-        });
+        }
+
+        document.addEventListener("keydown", handleInput);
+        document.addEventListener("mousedown", handleInput); // Trigger input on click
 
         // Create Pipes
         function createPipe() {
@@ -218,7 +221,7 @@
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = "white";
                 ctx.font = "24px Arial";
-                ctx.fillText("Game Over! You scored " + score + " points. Press any key to restart", canvas.width / 2 - 150, canvas.height / 2);
+                ctx.fillText("Game Over! You scored " + score + " points. Press any key or click to restart", canvas.width / 2 - 150, canvas.height / 2);
                 speed = 1.00;
                 speedActual = 15.00;
             }
